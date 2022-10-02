@@ -1,9 +1,18 @@
 import {Injectable, UnauthorizedException} from '@nestjs/common';
 import axios from "axios";
 import * as qs from 'qs';
+import {UserService} from "./user.service";
+import {User} from "../domain/user.entity";
+import {Payload} from "./security/payload.interface";
+import {JwtService} from "@nestjs/jwt";
 
 @Injectable()
 export class AuthService {
+    constructor(
+        private userService: UserService,
+        private jwtService: JwtService,
+    ) {
+    }
     async kakaoLogin(param: { code: any; domain: any }) {
         const {code, domain} = param;
         const kakaoKey = 'e7b1329f8def7deb5b36c01b91c96646';
@@ -47,5 +56,29 @@ export class AuthService {
         }catch(error){
             console.log(error)
         }
+    }
+
+    async login(kakao: any): Promise<{accessToken: string} | undefined> {
+        //회원 가입 여부 체크
+        let userFind: User = await this.userService.findByFields({
+            where: {kakaoId: kakao.id}
+        })
+        if(!userFind){
+            const user = new User();
+            user.kakaoId = kakao.id;
+            user.email = kakao.kakao_account.email;
+            user.name = kakao.kakao_account.name;
+            userFind = await this.userService.registerUser(user);
+        }
+
+        const payload: Payload = {
+            id: userFind.id,
+            name: userFind.name,
+            authorities: userFind.authorities
+        }
+
+        return{
+            accessToken: this.jwtService.sign(payload)
+        };
     }
 }

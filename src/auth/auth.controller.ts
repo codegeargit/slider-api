@@ -1,4 +1,4 @@
-import {BadRequestException, Body, Controller, Post, Response} from '@nestjs/common';
+import {BadRequestException, Body, Controller, Post, Response, UnauthorizedException} from '@nestjs/common';
 import {AuthService} from "./auth.service";
 
 @Controller('auth')
@@ -12,10 +12,17 @@ export class AuthController {
             if(!code || !domain) {
                 throw new BadRequestException('요청 오류');
             }
+            // 카카오 로그인
             const kakao = await this.authService.kakaoLogin({code, domain});
+            if(!kakao.id){
+                throw new UnauthorizedException('카카오 로그인 실패!');
+            }
+
+            // 로컬 로그인 처리
+            const jwt = await this.authService.login(kakao);
 
             res.send({
-                user: kakao,
+                accessToken: jwt.accessToken,
                 message: 'success'
             })
         }catch(error){
