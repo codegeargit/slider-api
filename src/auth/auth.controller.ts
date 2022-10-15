@@ -1,5 +1,16 @@
-import {BadRequestException, Body, Controller, Post, Response, UnauthorizedException} from '@nestjs/common';
+import {
+    BadRequestException,
+    Body,
+    Controller,
+    Get,
+    Post,
+    Request,
+    Response,
+    UnauthorizedException,
+    UseGuards
+} from '@nestjs/common';
 import {AuthService} from "./auth.service";
+import {AuthGuard} from "./security/auth.guard";
 
 @Controller('auth')
 export class AuthController {
@@ -28,5 +39,13 @@ export class AuthController {
         }catch(error){
             console.log(error);
         }
+    }
+
+    //사용자 정보 조회
+    @UseGuards(AuthGuard)
+    @Get('/user')
+    getUser(@Request() req): any{
+        console.log(req);
+        return req.user;
     }
 }

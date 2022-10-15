@@ -5,6 +5,7 @@ import {UserService} from "./user.service";
 import {User} from "../domain/user.entity";
 import {Payload} from "./security/payload.interface";
 import {JwtService} from "@nestjs/jwt";
+import {RoleType} from "./role-type";
 
 @Injectable()
 export class AuthService {
@@ -80,5 +81,27 @@ export class AuthService {
         return{
             accessToken: this.jwtService.sign(payload)
         };
+    }
+
+    async tokenValidateUser(payload: Payload): Promise<User | undefined> {
+        const userFind = await this.userService.findByFields({
+            where: {id: payload.id}
+        });
+        this.flatAuthorities(userFind);
+        return userFind;
+    }
+
+    private flatAuthorities(user: any): User {
+        if(user && user.authorities) {
+            const authorities: string[] = [];
+            user.authorities.forEach(authority=>authorities.push(authority.authorityName));
+            user.authorities = authorities;
+            for(const auth of authorities){
+                if(auth === RoleType.ADMIN){
+                    user.isAdmin = true;
+                }
+            }
+        }
+        return user;
     }
 }
